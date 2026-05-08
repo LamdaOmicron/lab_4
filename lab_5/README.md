@@ -1,8 +1,4 @@
-## Документация
-
-# Лабораторная работа №2: RESTful API для управления персонажами
-
-# Лабораторная работа №4: Автоматизированное документирование REST API с использованием OpenAPI (Swagger)
+# Лабораторные работы №2, №3, №4: RESTful API с аутентификацией и Swagger документацией
 
 ## Описание проекта
 
@@ -16,8 +12,9 @@ RESTful API для управления игровыми персонажами 
 - drf-spectacular (OpenAPI/Swagger)
 - PostgreSQL 16
 - Docker & Docker Compose
-- JWT аутентификация
+- JWT аутентификация (Access + Refresh токены)
 - OAuth 2.0 (Yandex, VK)
+- bcrypt для хеширования паролей
 
 ## Запуск проекта
 
@@ -31,7 +28,7 @@ RESTful API для управления игровыми персонажами 
 1. **Клонировать репозиторий**:
    ```bash
    git clone <url-репозитория>
-   cd lab_2
+   cd lab_5
    ```
 
 2. **Создать файл `.env`** на основе `.env.example` (см. ниже).
@@ -51,7 +48,7 @@ RESTful API для управления игровыми персонажами 
 
 ## Переменные окружения
 
-Создайте файл `.env` в корне проекта со следующим содержимым (скопируйте из `.env.example` и при необходимости измените):
+Создайте файл `.env` в корне проекта со следующим содержимым:
 
 ```env
 # PostgreSQL
@@ -65,7 +62,6 @@ DB_PORT=5432
 APP_PORT=4200
 
 # Окружение (development или production)
-# Установите 'production' для отключения Swagger документации
 NODE_ENV=development
 
 # JWT Configuration
@@ -80,68 +76,45 @@ CLIENT_SECRET=your_client_secret
 CALLBACK_URL=http://localhost:4200/auth/yandex/callback
 ```
 
-**Примечание:** файл `.env.example` должен быть в репозитории, а сам `.env` добавлен в `.gitignore`.
+**Примечание:** файл `.env` не должен попадать в систему контроля версий (добавлен в `.gitignore`).
 
 ## API Endpoints
-http://localhost:8000/admin/login/?next=/admin/
-Если суперпользователь(АДМИН!!!!) ещё не создан, выполните в терминале команду: docker compose exec app python manage.py createsuperuser
-
 
 ### Базовый URL: `http://localhost:4200`
 
 #### Auth (Аутентификация)
 
-| Метод   | URI                          | Описание                             | Статус успеха | Требует авторизации |
-|---------|------------------------------|--------------------------------------|---------------|---------------------|
-| POST    | `/auth/register/`            | Регистрация нового пользователя      | 201 Created   | Нет                 |
-| POST    | `/auth/login/`               | Вход пользователя                    | 200 OK        | Нет                 |
-| POST    | `/auth/refresh/`             | Обновление JWT токенов               | 200 OK        | Нет (использует cookie) |
-| GET     | `/auth/whoami/`              | Проверка авторизации                 | 200 OK        | Да                  |
-| POST    | `/auth/logout/`              | Выход из текущей сессии              | 200 OK        | Да                  |
-| POST    | `/auth/logout-all/`          | Выход из всех сессий                 | 200 OK        | Да                  |
-| GET     | `/auth/oauth/<provider>/`    | Инициация OAuth входа                | 200 OK        | Нет                 |
-| GET     | `/auth/oauth/<provider>/callback/` | OAuth callback           | 302 Redirect  | Нет                 |
-| POST    | `/auth/forgot-password/`     | Запрос сброса пароля                 | 200 OK        | Нет                 |
-| POST    | `/auth/reset-password/`      | Сброс пароля                         | 200 OK        | Нет                 |
+| Метод | URI | Описание | Статус успеха | Требует авторизации |
+|-------|-----|----------|---------------|---------------------|
+| POST | `/auth/register/` | Регистрация нового пользователя | 201 Created | Нет |
+| POST | `/auth/login/` | Вход пользователя (установка cookies) | 200 OK | Нет |
+| POST | `/auth/refresh/` | Обновление JWT токенов | 200 OK | Нет (использует cookie) |
+| GET | `/auth/whoami/` | Проверка авторизации | 200 OK | Да |
+| POST | `/auth/logout/` | Выход из текущей сессии | 200 OK | Да |
+| POST | `/auth/logout-all/` | Выход из всех сессий | 200 OK | Да |
+| GET | `/auth/oauth/<provider>/` | Инициация OAuth входа | 200 OK | Нет |
+| GET | `/auth/oauth/<provider>/callback/` | OAuth callback | 302 Redirect | Нет |
+| POST | `/auth/forgot-password/` | Запрос сброса пароля | 200 OK | Нет |
+| POST | `/auth/reset-password/` | Сброс пароля | 200 OK | Нет |
 
 #### Characters (Персонажи)
 
 Базовый URL: `http://localhost:4200/api/characters/`
 
-| Метод   | URI                      | Описание                             | Статус успеха | Требует авторизации |
-|---------|--------------------------|--------------------------------------|---------------|---------------------|
-| GET     | `/`                      | Список персонажей (с пагинацией)     | 200 OK        | Нет                 |
-| POST    | `/`                      | Создание нового персонажа            | 201 Created   | Нет                 |
-| GET     | `/<uuid:id>/`            | Получение персонажа по ID            | 200 OK        | Нет                 |
-| PUT     | `/<uuid:id>/`            | Полное обновление персонажа          | 200 OK        | Нет                 |
-| PATCH   | `/<uuid:id>/`            | Частичное обновление персонажа       | 200 OK        | Нет                 |
-| DELETE  | `/<uuid:id>/`            | Мягкое удаление персонажа            | 204 No Content| Нет                 |
+| Метод | URI | Описание | Статус успеха | Требует авторизации |
+|-------|-----|----------|---------------|---------------------|
+| GET | `/` | Список персонажей (с пагинацией) | 200 OK | Нет |
+| POST | `/` | Создание нового персонажа | 201 Created | Нет |
+| GET | `/<uuid:id>/` | Получение персонажа по ID | 200 OK | Нет |
+| PUT | `/<uuid:id>/` | Полное обновление персонажа | 200 OK | Нет |
+| PATCH | `/<uuid:id>/` | Частичное обновление персонажа | 200 OK | Нет |
+| DELETE | `/<uuid:id>/` | Мягкое удаление персонажа | 204 No Content | Нет |
 
 ### Пагинация
 
 Параметры передаются в query string:
 - `page` – номер страницы (по умолчанию 1)
 - `limit` – количество записей на странице (по умолчанию 10, максимум 100)
-
-**Пример запроса**:
-```
-GET /api/characters/?page=2&limit=20
-```
-
-**Ответ**:
-```json
-{
-  "data": [
-    { /* объект персонажа */ }
-  ],
-  "meta": {
-    "total": 42,
-    "page": 2,
-    "limit": 20,
-    "totalPages": 3
-  }
-}
-```
 
 ## Swagger документация
 
@@ -152,69 +125,83 @@ GET /api/characters/?page=2&limit=20
 - **Development режим** (`NODE_ENV=development`): Документация доступна по адресу `http://localhost:4200/api/docs/`
 - **Production режим** (`NODE_ENV=production`): Документация **недоступна** (возвращает 404)
 
-### Функции Swagger UI
-
-- Интерактивное тестирование всех эндпоинтов
-- Просмотр схем запросов и ответов с примерами
-- Авторизация через JWT (токен передается в cookies)
-- Группировка эндпоинтов по тегам (Auth, Characters)
-- Описание всех возможных статусов ответа (200, 201, 400, 401, 403, 404)
-
 ### Безопасность в документации
 
-- Чувствительные данные (пароли, соли, refresh токены) скрыты из схем ответов с помощью `write_only=True`
-- Защищенные эндпоинты помечены значком замка 🔒
-- Для тестирования защищенных эндпоинтов необходимо сначала выполнить login через `/auth/login/`
-
-## Миграции
-
-Миграции запускаются автоматически при старте контейнера (команда `python manage.py migrate` в `CMD` Dockerfile). Если необходимо выполнить миграции вручную:
-
-```bash
-docker exec -it wp_labs_app python manage.py migrate
-```
-
-## Тестирование
-
-Для запуска тестов (внутри контейнера или локально с PostgreSQL):
-
-```bash
-docker exec -it wp_labs_app python manage.py test characters
-```
-
-Все тесты должны проходить успешно.
+- Чувствительные данные (пароли, соли, refresh токены) скрыты из схем ответов
+- Защищенные эндпоинты помечены значком замка
+- Схема безопасности настроена для работы с cookie-based аутентификацией
 
 ## Структура проекта
 
 ```
-lab_2/
+lab_5/
 ├── characters/               # приложение персонажей
-│   ├── models.py            # модель Character
-│   ├── views.py             # контроллеры с @extend_schema
-│   ├── serializers.py       # сериализаторы с примерами
-│   ├── services.py          # бизнес-логика
-│   ├── exceptions.py        # кастомный обработчик ошибок
-│   └── tests.py             # тесты
 ├── auth_app/                 # приложение аутентификации
-│   ├── views.py             # контроллеры авторизации
-│   ├── dto.py               # DTO/серриализаторы
-│   ├── services.py          # AuthService
-│   └── jwt_utils.py         # утилиты JWT
 ├── users/                    # приложение пользователей
-│   └── models.py            # модель User
-├── myproject/               # настройки Django
-│   ├── settings.py          # конфигурация + SPECTACULAR_SETTINGS
-│   └── urls.py              # маршруты + Swagger routes
+├── myproject/                # настройки Django
 ├── docker-compose.yml
 ├── Dockerfile
 ├── requirements.txt
-├── .env.example
 └── README.md
 ```
+
+## Контрольные вопросы
+
+### Лабораторная работа №3 (Аутентификация)
+
+1. **В чем разница между аутентификацией и авторизацией?**
+   - Аутентификация — проверка личности (кто вы?)
+   - Авторизация — проверка прав доступа (что разрешено?)
+
+2. **Что такое соль (salt)?**
+   - Случайная строка, добавляемая к паролю перед хешированием
+   - Гарантирует уникальность хешей даже для одинаковых паролей
+
+3. **Из каких частей состоит JWT?**
+   - Header, Payload, Signature
+
+4. **Зачем хранить Refresh Token в БД?**
+   - Для возможности отзыва токена (logout)
+   - Для контроля активных сессий
+
+5. **Преимущества HttpOnly cookies перед LocalStorage?**
+   - Недоступны для JavaScript (защита от XSS)
+   - Автоматическая отправка браузером
+
+6. **Зачем нужен параметр state в OAuth 2.0?**
+   - Защита от CSRF атак
+
+7. **Шаги Authorization Code Grant:**
+   1. Редирект на провайдера с client_id и state
+   2. Авторизация у провайдера
+   3. Возврат с authorization code
+   4. Обмен code на access token
+   5. Получение данных пользователя
+
+8. **Разница между /logout и /logout-all?**
+   - /logout отзывает текущий токен
+   - /logout-all отзывает все токены пользователя
+
+### Лабораторная работа №4 (Swagger)
+
+1. **OpenAPI vs Swagger UI?**
+   - OpenAPI — спецификация
+   - Swagger UI — инструмент визуализации
+
+2. **Code-First vs Design-First?**
+   - Code-First: документация из кода (используется здесь)
+   - Design-First: сначала спецификация, потом код
+
+3. **Почему скрывать документацию в production?**
+   - Не раскрывать структуру API злоумышленникам
+
+4. **Какие HTTP коды описывать для CRUD?**
+   - 200, 201, 204, 400, 401, 403, 404
 
 ## Ссылки
 
 - [Django REST Framework](https://www.django-rest-framework.org/)
-- [drf-spectacular documentation](https://drf-spectacular.readthedocs.io/)
+- [drf-spectacular](https://drf-spectacular.readthedocs.io/)
 - [OpenAPI Specification](https://swagger.io/specification/)
-- [Docker Compose](https://docs.docker.com/compose/)
+- [OAuth 2.0 RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749)
+- [JWT.io](https://jwt.io/)

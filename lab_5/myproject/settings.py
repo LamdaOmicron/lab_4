@@ -73,7 +73,18 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
-    'SECURITY': [{'BearerAuth': []}],
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
+    'SECURITY': [{'cookieAuth': []}],
+    'COMPONENTS': {
+        'securitySchemes': {
+            'cookieAuth': {
+                'type': 'apiKey',
+                'in': 'cookie',
+                'name': 'access_token',
+                'description': 'JWT аутентификация через HttpOnly cookies. Для тестирования в Swagger UI используйте эндпоинт /auth/login для установки cookies.'
+            }
+        }
+    },
 }
 
 TEMPLATES = [
